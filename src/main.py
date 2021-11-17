@@ -5,16 +5,17 @@ import os
 from datetime import timedelta, datetime
 
 
+from datetime import timedelta, datetime
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from sqlalchemy import exc
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
-
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Favourite, FavouritePeople, People, PeopleDetail
+from sqlalchemy import exc
+from models import db, User, Favourite, FavouritePeople, People, PeopleDetail, Species, SpeciesDetails
 
 #from models import Person
 
@@ -35,6 +36,7 @@ setup_admin(app)
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
+
 
 # generate sitemap with all your endpoints
 @app.route('/')
@@ -85,7 +87,6 @@ def create_user():
     return jsonify({'token': access_token}), 200
 
 
-
 @app.route('/user/<int:id>/favourite', methods=['GET'])
 @jwt_required
 def get_fav(id):
@@ -98,6 +99,24 @@ def get_fav(id):
     return jsonify({'error': 'Not authorized'})
 
 
+@app.route('/species/', methods=['GET'])
+def get_all_species():
+    species = Species.get_all()
+
+    if species:
+        return jsonify(species.to_dict()), 200
+
+    return jsonify({'message':'Species not found'}), 400
+
+
+@app.route('/species/<int:id>', methods=['GET'])
+def get_species(id):
+    all_species = Species.get_by_id(id)
+
+    if all_species:
+        return jsonify(species.to_dict()), 200
+
+    return jsonify({'message':'Species not found'}), 400
 @app.route('/people', methods=['GET'])
 def get_all_people():
     characters = People.get_all()

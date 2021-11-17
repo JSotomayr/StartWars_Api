@@ -22,6 +22,10 @@ class User(db.Model):
             "username": self.username
         }
 
+    def create(self):
+       db.session.add(self)
+       db.session.commit()
+
 
     def create(self):
         db.session.add(self)
@@ -40,6 +44,7 @@ class User(db.Model):
         secretPass = cls.query.filter_by(password=password).one_or_none()
         return secretPass
 
+
     @classmethod
     def get_all(cls):
         users = cls.query.all()
@@ -57,6 +62,31 @@ class Favourite(db.Model):
     def get_all(cls):
         favourite = cls.query.all()
         return favourite
+
+
+class Species(db.Model):
+    __tablename__:"species"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(250), unique=False, nullable=False)
+    detail_id = db.Column(db.Integer, db.ForeignKey("species_details.id"), nullable=False)
+
+    people_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
+
+    def __repr__(self):
+        return f'Species: {self.id}, url: {self.url}'
+
+
+    @classmethod    
+    def get_all(cls):
+        species_list = cls.query.all()
+        return [species.serialize() for i in species_list]
+
+
+    @classmethod
+    def get_by_id(cls, id):
+        specie = cls.query.get(id)
+        return specie
 
 
 class FavouritePeople(db.Model):
@@ -94,8 +124,48 @@ class People(db.Model):
     @classmethod
     def get_by_id(cls, id):
         character = cls.query.get(id)
-        return character
+        return character  
 
+
+class SpeciesDetails(db.Model):
+    __tablename__:"species_details"
+    id = db.Column(db.Integer, primary_key=True)
+    classification = db.Column(db.String(250), unique=False, nullable=False)
+    designation = db.Column(db.String(250),unique=False, nullable=False)
+    average_height = db.Column(db.FLOAT, unique=False, nullable=False)
+    average_lifespan = db.Column(db.Integer, unique=False, nullable=False)
+    hair_color = db.Column(db.String(250), unique=False, nullable=False)
+    eye_color = db.Column(db.String(250), unique=False, nullable=False)
+    homeworld = db.Column(db.String(250), unique=False, nullable=False)
+    language = db.Column(db.String(250), unique=False, nullable=False)
+    people = db.Column(db.String(250), unique=False, nullable=False)
+    created = db.Column(db.DATETIME(250), unique=False, nullable=False)
+    edited = db.Column(db.DATETIME(250), unique=False, nullable=False)
+    name = db.Column(db.String(250), unique=False, nullable=False)
+
+    detail_has_specie = db.relationship("Species", back_populates="people_has_detail")
+    #people_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
+
+    """ def __repr__(self):
+        return "<SpeciesDetails>" % self.username """
+        
+    def serialize(self):
+        return {
+            "id" : self.id,
+            "classificacion": self.classificacion,
+            "designation": self.designation,
+            "average_height": self.average_height,
+            "average_lifespan": self.average_lifespan,
+            "hair_color": self.hair_color,
+            "eye_color": self.eye_color,
+            "homeworld": self.homeworld,
+            "language": self.language,
+            "people": self.people,
+            "created": self.created,
+            "edited": self.edited,
+            "name": self.name,
+        }
+   
 
 class PeopleDetail(db.Model):
     __tablename__: "people_detail" 
