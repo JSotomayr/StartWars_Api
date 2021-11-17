@@ -9,12 +9,13 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     username = db.Column(db.String(120), unique=True, nullable=False)
     _password = db.Column(db.String(80), unique=False, nullable=False)
-    _is_active = db.Column(db.Boolean(), unique=False, nullable=False)
+    _is_active = db.Column(db.Boolean(), unique=False, nullable=False, default=True)
 
     def __repr__(self):
-        return f'User is {self.username}, with {self.id}'
+        return f'User is {self.username}, with {self.email} and {self.id}'
+    
 
-    def serialize(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "email": self.email,
@@ -22,16 +23,28 @@ class User(db.Model):
         }
 
 
+    def create(self):
+        db.session.add(self)
+        db.session.commit()
+        
+
+
     @classmethod
     def get_by_email(cls, email):
-        email = cls.query.filter_by(email).one_or_none()
-        return email
+        account = cls.query.filter_by(email=email).one_or_none()
+        return account
 
 
     @classmethod
     def get_by_password(cls, password):
-        password = cls.query.filter_by(password).one_or_none()
-        return password
+        secretPass = cls.query.filter_by(password=password).one_or_none()
+        return secretPass
+
+    @classmethod
+    def get_all(cls):
+        users = cls.query.all()
+        return users
+
 
 class Favourite(db.Model):
     __tablename__: "favourite"
@@ -65,7 +78,7 @@ class People(db.Model):
     def __repr__(self):
         return f'People is {self.name}, url: {self.url}'
 
-    def serialize(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name
@@ -105,7 +118,8 @@ class PeopleDetail(db.Model):
     # def __repr__(self):
     #     return '<PeopleDetail>' % self.username
 
-    def serialize(self):
+
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
