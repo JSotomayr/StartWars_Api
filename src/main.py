@@ -2,8 +2,8 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
-import datetime
 
+from datetime import timedelta, datetime
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
@@ -67,7 +67,7 @@ def get_user():
 def create_user():
     new_email=request.json.get('email', None)
     new_user=request.json.get('username', None)
-    new_password=request.json.get('_password', None)
+    new_password=request.json.get('password', None)
     
     if not (new_user and new_email and new_password):
         return jsonify({'error':'missing user'}), 400
@@ -80,7 +80,7 @@ def create_user():
         return jsonify({'error': 'fail in data'}), 400
 
     account = User.get_by_email(new_email)
-    access_token = create_access_token(identity=user.to_dict(), time=timedelta(days=30))
+    access_token = create_access_token(identity=account.to_dict(), expires_delta=timedelta(days=30))
     return jsonify({'token': access_token}), 200
 
 @app.route('/user/<int:id>/favourite', methods=['GET'])
