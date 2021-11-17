@@ -2,19 +2,27 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
+import datetime
+
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required ,JWTManager
+
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, Species, SpeciesDetails
+from models import db, Species, SpeciesDetails, User
+
 #from models import Person
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_KEY')  # Change this!
+jwt = JWTManager(app)
+
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
@@ -32,21 +40,39 @@ def sitemap():
     return generate_sitemap(app)
 
 
-""" @app.route('/user', methods=['GET'])
+@app.route('/login', methods=['POST'])
+def login():
+    email, password = request.json.get('email', None), request.json.get('password', None)
+
+    if email and password:
+        user= User.get_by_email(email)
+
+        if user:
+            """check PASSWORD"""
+            access_token = create_access_token(identity=user.id, datetime=timedelta(hours=12))
+            return jsonify({'token': access_token}), 200
+
+    return jsonify({'error':'Invalid Data'}), 400
+
+
+@app.route('/user', methods=['GET'])
 def get_user():
     users = User.get_all()
 
-    return jsonify(response_body), 200
+    return jsonify(users.to_dict()), 200
 
 
-@app.route('/user/<int:id>', methods=['GET'])
-def get_user_by_id(id):
+@app.route('/user/<int:id>/favourite', methods=['GET'])
+@jwt_required
+def get_fav(id):
     user = User.get_by_id(id)
+    token_id = get_jwt_identity
 
-    if user:
-        return jsonify(user.to_dict()), 200
+    if token_id == id:
+        pass
+        """return favs"""
 
-    return jsonify({'message':'User not found'}), 404     """
+    return jsonify({'message':'User not found'}), 404    
 
 @app.route('/species/', methods=['GET'])
 def get_all_species():

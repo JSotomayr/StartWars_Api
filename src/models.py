@@ -2,32 +2,37 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-""" class User(db.Model):
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nick = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(80), unique=False, nullable=False)
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
-    species = db.relationship('species', lazy=True)
+    
 
     def __repr__(self):
-        return f'User is {self.nick}, id:{self.id}'
+        return f'User {self.email}'
 
     def to_dict(self):
         return {
             "id": self.id,
-            "nick": self.nick,
+            "email": self.email,
+            "password": self.password
         }
-
+    
     def get_all():
         users = query.all()
         return users
-     """
+    
 class Species(db.Model):
     __tablename__:"species"
-    id = db.Column(db.Integer, primary_key=True)
-    """ user_id = db.Column(db.Integer, db.ForeignKey("User.id")) """
-    name = db.Column(db.String, unique=False, nullable=False)
-    url = db.Column(db.String, unique=False, nullable=False)
 
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, unique=False, nullable=False)
+    detail_id = db.Column(db.Integer, db.ForeignKey("species_details.id"), nullable=False)
+
+    people_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
+
+    
     def repr(self):
         return f'Species: {self.id}, url: {self.url}'
 
@@ -35,7 +40,6 @@ class Species(db.Model):
         return {
             "id": self.id,
             "name": self.name,
-            "url": self.url
         }
 
     @classmethod    
@@ -50,21 +54,23 @@ class Species(db.Model):
 
 
 class SpeciesDetails(db.Model):
-    __tablename__:"speciesDetails"
+    __tablename__:"species_details"
     id = db.Column(db.Integer, primary_key=True)
     classification = db.Column(db.String(250), unique=False, nullable=False)
     designation = db.Column(db.String(250),unique=False, nullable=False)
-    average_height = db.Column(db.Integer, unique=False, nullable=False)
+    average_height = db.Column(db.FLOAT, unique=False, nullable=False)
     average_lifespan = db.Column(db.Integer, unique=False, nullable=False)
     hair_color = db.Column(db.String(250), unique=False, nullable=False)
     eye_color = db.Column(db.String(250), unique=False, nullable=False)
     homeworld = db.Column(db.String(250), unique=False, nullable=False)
     language = db.Column(db.String(250), unique=False, nullable=False)
     people = db.Column(db.String(250), unique=False, nullable=False)
-    created = db.Column(db.String(250), unique=False, nullable=False)
-    edited = db.Column(db.String(250), unique=False, nullable=False)
+    created = db.Column(db.DATETIME(250), unique=False, nullable=False)
+    edited = db.Column(db.DATETIME(250), unique=False, nullable=False)
     name = db.Column(db.String(250), unique=False, nullable=False)
-    url = db.Column(db.String(250), unique=False, nullable=False)
+
+    detail_has_specie = db.relationship("Species", back_populates="people_has_detail")
+    #people_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
 
     """ def __repr__(self):
         return "<SpeciesDetails>" % self.username """
@@ -84,7 +90,6 @@ class SpeciesDetails(db.Model):
             "created": self.created,
             "edited": self.edited,
             "name": self.name,
-            "url": self.url
         }
    
      
