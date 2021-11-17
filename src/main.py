@@ -2,12 +2,15 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
+from datetime import timedelta, datetime
+
 
 from datetime import timedelta, datetime
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
+from sqlalchemy import exc
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from utils import APIException, generate_sitemap
 from admin import setup_admin
@@ -29,7 +32,7 @@ db.init_app(app)
 CORS(app)
 setup_admin(app)
 
-# Handle/serialize errors like a JSON object
+# Handle/to_dict errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
@@ -50,7 +53,7 @@ def login():
 
         if user:
             password = User.get_by_password(password)
-            access_token = create_access_token(identity=user.to_dict(), time=timedelta(days=30))
+            access_token = create_access_token(identity=user.to_dict(), expires_delta=timedelta(days=30))
             return jsonify({'token': access_token}), 200
     
     return jsonify({'error': 'Invalid information'}), 400
@@ -65,23 +68,24 @@ def get_user():
 
 @app.route('/user', methods=['POST'])
 def create_user():
-    new_email=request.json.get('email', None)
-    new_user=request.json.get('username', None)
-    new_password=request.json.get('password', None)
-    
-    if not (new_user and new_email and new_password):
-        return jsonify({'error':'missing user'}), 400
+    new_email = request.json.get('email', None)
+    new_username = request.json.get('username', None)
+    new_password = request.json.get('password', None)
 
-    user_created= User(username=new_user, email=new_email, _password=new_password)
+    if not (new_email and new_username and new_password):
+        return jsonify({'error': 'Missing user'}), 400
+
+    user_created = User(email=new_email, username=new_username, _password=new_password) 
 
     try:
         user_created.create()
     except exc.IntegrityError:
-        return jsonify({'error': 'fail in data'}), 400
-
+        return jsonify({'error': 'Fail in creating user'}), 400
+    
     account = User.get_by_email(new_email)
     access_token = create_access_token(identity=account.to_dict(), expires_delta=timedelta(days=30))
     return jsonify({'token': access_token}), 200
+
 
 @app.route('/user/<int:id>/favourite', methods=['GET'])
 @jwt_required
@@ -118,7 +122,7 @@ def get_all_people():
     characters = People.get_all()
 
     if characters:
-        character_list = [character.serialize() for character in characters] 
+        character_list = [character.to_dict() for character in characters] 
         return jsonify({character_list}), 200
 
 
@@ -130,7 +134,7 @@ def get_character(id):
     character = People.get_by_id(id)
 
     if character:
-        return jsonify(character.serialize()), 200
+        return jsonify(character.to_dict()), 200
 
     return jsonify({'error': 'Character not found'})
 

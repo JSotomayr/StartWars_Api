@@ -12,7 +12,8 @@ class User(db.Model):
     _is_active = db.Column(db.Boolean(), unique=False, nullable=False, default=True)
 
     def __repr__(self):
-        return f'User is {self.username}, {self.email}, with {self.id}'
+        return f'User is {self.username}, with {self.email} and {self.id}'
+    
 
     def to_dict(self):
         return {
@@ -26,6 +27,12 @@ class User(db.Model):
        db.session.commit()
 
 
+    def create(self):
+        db.session.add(self)
+        db.session.commit()
+        
+
+
     @classmethod
     def get_by_email(cls, email):
         account = cls.query.filter_by(email=email).one_or_none()
@@ -36,7 +43,8 @@ class User(db.Model):
     def get_by_password(cls, password):
         secretPass = cls.query.filter_by(password=password).one_or_none()
         return secretPass
-    
+
+
     @classmethod
     def get_all(cls):
         users = cls.query.all()
@@ -68,10 +76,12 @@ class Species(db.Model):
     def __repr__(self):
         return f'Species: {self.id}, url: {self.url}'
 
+
     @classmethod    
     def get_all(cls):
         species_list = cls.query.all()
         return [species.serialize() for i in species_list]
+
 
     @classmethod
     def get_by_id(cls, id):
@@ -98,22 +108,23 @@ class People(db.Model):
     def __repr__(self):
         return f'People is {self.name}, url: {self.url}'
 
-    def serialize(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name
         }
+
 
     @classmethod
     def get_all(cls):
         character_list = cls.query.all()
         return character_list
 
+
     @classmethod
     def get_by_id(cls, id):
         character = cls.query.get(id)
-        return character
-        
+        return character  
 
 
 class SpeciesDetails(db.Model):
@@ -177,7 +188,8 @@ class PeopleDetail(db.Model):
     # def __repr__(self):
     #     return '<PeopleDetail>' % self.username
 
-    def serialize(self):
+
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
