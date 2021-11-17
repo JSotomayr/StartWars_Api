@@ -24,19 +24,20 @@ class User(db.Model):
     def create(self):
        db.session.add(self)
        db.session.commit()
-       return self
-            
+
+
     @classmethod
     def get_by_email(cls, email):
-        email = cls.query.filter_by(email).one_or_none()
-        return email
+        account = cls.query.filter_by(email=email).one_or_none()
+        return account
 
 
     @classmethod
     def get_by_password(cls, password):
-        password = cls.query.filter_by(password).one_or_none()
-        return password
+        secretPass = cls.query.filter_by(password=password).one_or_none()
+        return secretPass
     
+    @classmethod
     def get_all(cls):
         users = cls.query.all()
         return users
