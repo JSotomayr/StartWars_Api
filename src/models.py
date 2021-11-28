@@ -5,6 +5,10 @@ db = SQLAlchemy()
 speciesfavourites = db.Table('speciesfavourites',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
     db.Column('species_id', db.Integer, db.ForeignKey('species.id'), primary_key=True)
+
+favourite_character= db.Table('favourite_character',
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id")),
+    db.Column("people_id", db.Integer, db.ForeignKey("people.id"))
 )
 
 class User(db.Model):
@@ -21,6 +25,7 @@ class User(db.Model):
         secondary = speciesfavourites, 
         back_populates="have_user_speciesfav"
         )
+    have_char = db.relationship("People", secondary=favourite_character, back_populates="have_user")
 
     def __repr__(self):
         return f'User is {self.username}, with {self.email} and {self.id}'
@@ -32,17 +37,24 @@ class User(db.Model):
             "email": self.email,
             "username": self.username,
             "species": [species.to_dict() for species in self.have_user_species]
+            "characters": [people.to_dict() for people in self.have_char] 
         }
 
     def create(self):
        db.session.add(self)
        db.session.commit()
 
-        
+
     @classmethod
     def get_by_email(cls, email):
         account = cls.query.filter_by(email=email).one_or_none()
         return account
+
+
+    @classmethod
+    def get_by_id(cls, id):
+        user_id = cls.query.get(id)
+        return user_id
 
 
     @classmethod
@@ -65,6 +77,11 @@ class User(db.Model):
         self.have_user_species.append(specie)
         db.session.commit()
         return self.have_user_species
+    
+    def new_fav_people (self,people):
+        self.have_char.append(people)
+        db.session.commit()
+        return self.have_char
 
 
 class Species(db.Model):
@@ -126,6 +143,7 @@ class People(db.Model):
         character_list = cls.query.all()
         return character_list
 
+
     @classmethod
     def get_by_id(cls, id):
         character = cls.query.get(id)
@@ -133,8 +151,44 @@ class People(db.Model):
         
 
 
+
+class People(db.Model):
+    __tablename__: "people"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(250), unique=False, nullable=False)
+    detail_id = db.Column(db.Integer, db.ForeignKey("people_detail.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    people_has_details = db.relationship("PeopleDetail", back_populates="detail_has_character")
+    have_user = db.relationship("User", secondary=favourite_character, back_populates="have_char")
+
+
+    def __repr__(self):
+        return f'People is {self.name}, url: {self.url}'
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
+
+
+    @classmethod
+    def get_all(cls):
+        character_list = cls.query.all()
+        return character_list
+
+
+    @classmethod
+    def get_by_id(cls, id):
+        character = cls.query.get(id)
+        return character  
+
+
 class SpeciesDetails(db.Model):
     __tablename__:"species_details"
+
     id = db.Column(db.Integer, primary_key=True)
     classification = db.Column(db.String(250), unique=False, nullable=False)
     designation = db.Column(db.String(250),unique=False, nullable=False)
@@ -177,3 +231,35 @@ class SpeciesDetails(db.Model):
     def get_by_id_speciesdetails(cls,id):
         speciesdetails = cls.query.get(id)
         return speciesdetails
+   
+
+class PeopleDetail(db.Model):
+    __tablename__: "people_detail" 
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(250), unique=False, nullable=False)
+    eye_color = db.Column(db.String(250), unique=False, nullable=False)
+    gender = db.Column(db.String(250), unique=False, nullable=False)
+    homeworld = db.Column(db.String(250), unique=False, nullable=False)
+
+    detail_has_character = db.relationship("People", back_populates="people_has_details")
+
+    # def __repr__(self):
+    #     return '<PeopleDetail>' % self.username
+
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "height": self.height,
+            "mass": self.mass,
+            "hair_color": self.hair_color,
+            "skin_color": self.skin_color,
+            "eye_color": self.eye_color,
+            "birth_year": self.birth_year,
+            "gender": self.gender,
+            "created": self.created,
+            "edited": self.edited,
+            "homeworld": self.homeworld
+        }
