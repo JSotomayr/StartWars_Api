@@ -96,6 +96,43 @@ class Species(db.Model):
         species = cls.query.get(id)
         return species
 
+class FavouritePeople(db.Model):
+    __tablename__: "favourite_people"
+
+    id = db.Column(db.Integer, primary_key=True)
+    people_id = db.Column(db.Integer, db.ForeignKey("people.id"), nullable=False)
+
+
+class People(db.Model):
+    __tablename__: "people"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(250), unique=False, nullable=False)
+    detail_id = db.Column(db.Integer, db.ForeignKey("people_detail.id"), nullable=False)
+
+    people_has_details = db.relationship("PeopleDetail", back_populates="detail_has_character")
+
+    def __repr__(self):
+        return f'People is {self.name}, url: {self.url}'
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
+
+    @classmethod
+    def get_all(cls):
+        character_list = cls.query.all()
+        return character_list
+
+    @classmethod
+    def get_by_id(cls, id):
+        character = cls.query.get(id)
+        return character
+        
+
+
 class SpeciesDetails(db.Model):
     __tablename__:"species_details"
     id = db.Column(db.Integer, primary_key=True)

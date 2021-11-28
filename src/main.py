@@ -2,20 +2,31 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
+<<<<<<< HEAD
 from datetime import timedelta, datetime
 
 
+=======
+
+>>>>>>> d311cad890ea42b8b001c2524e32a3f41be4c9e3
 from datetime import timedelta, datetime
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
+<<<<<<< HEAD
 from sqlalchemy import exc
+=======
+>>>>>>> d311cad890ea42b8b001c2524e32a3f41be4c9e3
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from sqlalchemy import exc
+<<<<<<< HEAD
 from models import db, User, Species, SpeciesDetails
+=======
+from models import db, User, Favourite, FavouritePeople, People, PeopleDetail, Species, SpeciesDetails
+>>>>>>> d311cad890ea42b8b001c2524e32a3f41be4c9e3
 
 #from models import Person
 
@@ -107,6 +118,24 @@ def get_species(id):
         return jsonify(all_species.to_dict()), 200
 
     return jsonify({'message':'Species not found'}), 400
+@app.route('/people', methods=['GET'])
+def get_all_people():
+    characters = People.get_all()
+
+    if characters:
+        character_list = [character.serialize() for character in characters] 
+        return jsonify({character_list}), 200
+
+
+    return jsonify({'error': 'Characters not found'}), 400
+
+
+@app.route('/people/<int:id>', methods=['GET'])
+def get_character(id):
+    character = People.get_by_id(id)
+
+    if character:
+        return jsonify(character.serialize()), 200
 
 @app.route('/user/<int:id_user>/favourite-species/<int:id_species>', methods=['POST'])
 @jwt_required()
