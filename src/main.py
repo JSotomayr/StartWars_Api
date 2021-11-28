@@ -95,16 +95,16 @@ def create_user():
 @app.route('/user/<int:id_user>/favourite-people/<int:id_people>', methods=['POST'])
 @jwt_required()
 def create_fav(id_user,id_people):
-    token_id = get_jwt_identity().get("id")
+    token_id = get_jwt_identity()
 
-    if not get_jwt_identity().get("id"):
+    if token_id.get("id") == id_user:
         user = User.get_by_id(id_user)
         people = People.get_by_id(id_people)
 
         if user and people:
-            add_people = new_fav_people(people)
+            add_people = user.new_fav_people(people)
             fav_people = [people.to_dict() for people in add_people]
-        return jsonify(fav_people), 200
+            return jsonify(fav_people), 200
 
     return jsonify({'error': 'No favourites'}), 404
 

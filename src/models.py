@@ -43,6 +43,12 @@ class User(db.Model):
 
 
     @classmethod
+    def get_by_id(cls, id):
+        user_id = cls.query.get(id)
+        return user_id
+
+
+    @classmethod
     def get_by_password(cls, password):
         secretPass = cls.query.filter_by(password=password).one_or_none()
         return secretPass
