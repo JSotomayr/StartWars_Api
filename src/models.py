@@ -2,6 +2,12 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
+favourite_character= db.Table('favourite_character',
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id")),
+    db.Column("people_id", db.Integer, db.ForeignKey("people.id"))
+)
+
 class User(db.Model):
     __tablename__: 'user'
 
@@ -11,6 +17,8 @@ class User(db.Model):
     _password = db.Column(db.String(80), unique=False, nullable=False)
     _is_active = db.Column(db.Boolean(), unique=False, nullable=False, default=True)
 
+    have_char = db.relationship("People", secondary=favourite_character, back_populates="have_user")
+
     def __repr__(self):
         return f'User is {self.username}, with {self.email} and {self.id}'
     
@@ -19,18 +27,13 @@ class User(db.Model):
         return {
             "id": self.id,
             "email": self.email,
-            "username": self.username
+            "username": self.username,
+            "characters": [people.to_dict() for people in self.have_char] 
         }
 
     def create(self):
        db.session.add(self)
        db.session.commit()
-
-
-    def create(self):
-        db.session.add(self)
-        db.session.commit()
-        
 
 
     @classmethod
@@ -50,28 +53,22 @@ class User(db.Model):
         users = cls.query.all()
         return users
 
-
-class Favourite(db.Model):
-    __tablename__: "favourite"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-
-
-    @classmethod
-    def get_all(cls):
-        favourite = cls.query.all()
-        return favourite
+    
+    def new_fav_people (self,people):
+        self.have_char.append(people)
+        db.session.commit()
+        return self.have_char
 
 
 class Species(db.Model):
     __tablename__:"species"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(250), unique=False, nullable=False)
+    name = db.Column(db.String(250), unique=True, nullable=False)
     detail_id = db.Column(db.Integer, db.ForeignKey("species_details.id"), nullable=False)
 
-    people_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
+    species_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
+
 
     def __repr__(self):
         return f'Species: {self.id}, url: {self.url}'
@@ -89,12 +86,6 @@ class Species(db.Model):
         return specie
 
 
-class FavouritePeople(db.Model):
-    __tablename__: "favourite_people"
-
-    id = db.Column(db.Integer, primary_key=True)
-    people_id = db.Column(db.Integer, db.ForeignKey("people.id"), nullable=False)
-
 
 class People(db.Model):
     __tablename__: "people"
@@ -102,8 +93,11 @@ class People(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), unique=False, nullable=False)
     detail_id = db.Column(db.Integer, db.ForeignKey("people_detail.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     people_has_details = db.relationship("PeopleDetail", back_populates="detail_has_character")
+    have_user = db.relationship("User", secondary=favourite_character, back_populates="have_char")
+
 
     def __repr__(self):
         return f'People is {self.name}, url: {self.url}'
@@ -129,6 +123,7 @@ class People(db.Model):
 
 class SpeciesDetails(db.Model):
     __tablename__:"species_details"
+
     id = db.Column(db.Integer, primary_key=True)
     classification = db.Column(db.String(250), unique=False, nullable=False)
     designation = db.Column(db.String(250),unique=False, nullable=False)
@@ -143,8 +138,7 @@ class SpeciesDetails(db.Model):
     edited = db.Column(db.DATETIME(250), unique=False, nullable=False)
     name = db.Column(db.String(250), unique=False, nullable=False)
 
-    detail_has_specie = db.relationship("Species", back_populates="people_has_detail")
-    #people_has_detail = db.relationship("SpeciesDetails", back_populates="detail_has_specie")
+    detail_has_specie = db.relationship("Species", back_populates="species_has_detail")
 
     """ def __repr__(self):
         return "<SpeciesDetails>" % self.username """
@@ -172,15 +166,8 @@ class PeopleDetail(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), unique=False, nullable=False)
-    height = db.Column(db.FLOAT, unique=False, nullable=False)
-    mass = db.Column(db.FLOAT, unique=False, nullable=False)
-    hair_color = db.Column(db.String(250), unique=False, nullable=False)
-    skin_color = db.Column(db.String(250), unique=False, nullable=False)
     eye_color = db.Column(db.String(250), unique=False, nullable=False)
-    birth_year = db.Column(db.DATETIME(timezone=False), unique=False, nullable=False) 
     gender = db.Column(db.String(250), unique=False, nullable=False)
-    created = db.Column(db.DATETIME(timezone=False), unique=False, nullable=False)
-    edited =db.Column(db.DATETIME(timezone=False), unique=False, nullable=False)
     homeworld = db.Column(db.String(250), unique=False, nullable=False)
 
     detail_has_character = db.relationship("People", back_populates="people_has_details")
@@ -204,6 +191,3 @@ class PeopleDetail(db.Model):
             "edited": self.edited,
             "homeworld": self.homeworld
         }
-
-
-        
