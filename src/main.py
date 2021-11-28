@@ -15,7 +15,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from sqlalchemy import exc
-from models import db, User, FavouritePeople, People, PeopleDetail, Species, SpeciesDetails
+from models import db, User, Species, SpeciesDetails
 
 #from models import Person
 
@@ -124,29 +124,6 @@ def add_favspecies(id_user,id_species):
             return jsonify(fav_species),200
 
     return jsonify({'error': 'Not authorized'}),404
-
-    
-@app.route('/people', methods=['GET'])
-def get_all_people():
-    characters = People.get_all()
-
-    if characters:
-        character_list = [character.to_dict() for character in characters] 
-        return jsonify({character_list}), 200
-
-
-    return jsonify({'error': 'Characters not found'}), 400
-
-
-@app.route('/people/<int:id>', methods=['GET'])
-def get_character(id):
-    character = People.get_by_id(id)
-
-    if character:
-        return jsonify(character.to_dict()), 200
-
-    return jsonify({'error': 'Character not found'})
-
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
