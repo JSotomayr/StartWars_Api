@@ -4,23 +4,17 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 import os
 from datetime import timedelta, datetime
 
-
-
-from datetime import timedelta, datetime
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
-from sqlalchemy import exc
 
-from sqlalchemy import exc
 
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from sqlalchemy import exc
-from models import db, User, People, PeopleDetail, Species, SpeciesDetails
-
+from models import db, User, People, PeopleDetail, Species, SpeciesDetails, Starship, StarshipDetail, 
 
 #from models import Person
 
@@ -28,7 +22,9 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_KEY')
+
+
+app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_KEY")
 jwt = JWTManager(app)
 
 
@@ -48,12 +44,10 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-
 @app.route('/login', methods=['POST'])
 def login():
     email = request.json.get('email', None)
     password = request.json.get('password', None)
-
 
     if email and password:
         user = User.get_by_email(email)
@@ -95,6 +89,67 @@ def create_user():
     account = User.get_by_email(new_email)
     access_token = create_access_token(identity=account.to_dict(), expires_delta=timedelta(days=30))
     return jsonify({'token': access_token}), 200
+
+                # GET USER BY ID
+
+@app.route('/user/<int:id>', methods=['GET'])
+def get_user_by_id(id):
+    user = User.get_by_id(id)
+
+    if user:
+        return jsonify(user.to_dict()), 200
+
+        return jsonify({'error': 'User is not found'}), 404
+
+@app.route('/user/<int:id>/favourite', methods=['GET'])
+@jwt_required
+def get_fav(id):
+    token_id = get_jwt_identity()
+
+    if token_id == id:
+        favourites = Favourite.get_all()
+        return favourite
+
+    return jsonify({'error': 'You are not authorized'})
+
+
+    # GET STARSHIP
+@app.route('/starship', methods=['GET'])
+def get_starships():
+    starships = Starship.get_all()
+
+    if starships:
+        starship_list = [starship.to_dict() for starship in starships]
+        return jsonify(starship_list), 200
+
+    return jsonify({'error': 'Starship not found'}), 404
+
+
+            #GET BY (STARSHIPS ID)
+@app.route('/starship/<int:id>', methods=['GET'])
+def get_starship_by_id(id):
+    starship = Starship.get_by_id(id)
+    if starship:
+        return jsonify(starship.to_dict()), 200
+
+    return jsonify({'error':"Starship not found"}), 404
+
+
+@app.route('/user/<int:id_user>/favourite-starship/<int:id_starship>', methods=['POST'])
+@jwt_required()
+def add_favstarship(id_user,id_starship):
+    token_id = get_jwt_identity()
+
+    if token_id.get("id") == id_user:
+        user = User.get_by_id(id_user)
+        starship = Starship.get_by_id(id_starship)
+
+        if user and starship:
+            add_fav = user.add_fav_starship(starship)
+            fav_starships = [starship.to_dict() for starship in add_fav]
+            return jsonify(fav_starships), 200
+
+    return jsonify({'error': 'Starship favorite not found'}), 404
 
 
 @app.route('/user', methods=['POST'])

@@ -5,6 +5,7 @@ from logging.config import fileConfig
 
 from flask import current_app
 
+
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -20,6 +21,7 @@ logger = logging.getLogger('alembic.env')
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
+
 config.set_main_option(
     'sqlalchemy.url',
     str(current_app.extensions['migrate'].db.get_engine().url).replace(
@@ -70,6 +72,7 @@ def run_migrations_online():
             if script.upgrade_ops.is_empty():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
+
 
     connectable = current_app.extensions['migrate'].db.get_engine()
 

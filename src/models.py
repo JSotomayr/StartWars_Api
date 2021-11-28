@@ -2,6 +2,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
+starshipfavourites = db.Table('starshipfavourites',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('starship_id', db.Integer, db.ForeignKey('starship.id'), primary_key=True)
+                              
 speciesfavourites = db.Table('speciesfavourites',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
     db.Column('species_id', db.Integer, db.ForeignKey('species.id'), primary_key=True)
@@ -9,7 +14,6 @@ speciesfavourites = db.Table('speciesfavourites',
 favourite_character= db.Table('favourite_character',
     db.Column("user_id", db.Integer, db.ForeignKey("user.id")),
     db.Column("people_id", db.Integer, db.ForeignKey("people.id"))
-)
 
 class User(db.Model):
     __tablename__: 'user'
@@ -26,6 +30,8 @@ class User(db.Model):
         back_populates="have_user_speciesfav"
         )
     have_char = db.relationship("People", secondary=favourite_character, back_populates="have_user")
+                              
+    have_user_starship = db.relationship('Starship', secondary=starshipfavourites, back_populates="have_user_starshipfav")
 
     def __repr__(self):
         return f'User is {self.username}, with {self.email} and {self.id}'
@@ -34,8 +40,9 @@ class User(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "username":self.username,
             "email": self.email,
-            "username": self.username,
+            "starships": [starship.to_dict() for starship in self.have_user_starship]
             "species": [species.to_dict() for species in self.have_user_species]
             "characters": [people.to_dict() for people in self.have_char] 
         }
@@ -52,22 +59,85 @@ class User(db.Model):
 
 
     @classmethod
-    def get_by_id(cls, id):
-        user_id = cls.query.get(id)
-        return user_id
-
-
-    @classmethod
     def get_by_password(cls, password):
         secretPass = cls.query.filter_by(password=password).one_or_none()
         return secretPass
-
 
     @classmethod
     def get_all(cls):
         users = cls.query.all()
         return users
+  
 
+    @classmethod
+    def get_by_id(cls, id):
+        user_id = cls.query.get(id)
+        return user_id
+
+
+    def add_fav_starship (self,starship):
+        self.have_user_starship.append(starship)
+        return self.have_user_starship
+
+
+class Starship(db.Model):
+    __tablename__ : 'starship'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=False, nullable=False)
+    starships_id = db.Column(db.Integer, db.ForeignKey("starship_detail.id"), nullable=False)
+
+    starship_has_details = db.relationship("StarshipDetail", back_populates = "starship_detail_has_starship")
+    have_user_starshipfav = db.relationship("User", secondary=starshipfavourites, back_populates = "have_user_starship")
+    
+
+    def __repr__(self):
+        return f'Starship is starships_id:{self.starship_id}, id:{self.id}, name:{self.name}'
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name":self.name,
+            "starships_id": self.starships_id
+            # do not serialize the password, its a security breach
+        }
+    @classmethod
+    def get_all(cls):
+        starships = cls.query.all()
+        return starships
+
+    @classmethod
+    def get_by_id(cls, id):
+        starship_id = cls.query.get(id)
+        return starship_id
+
+class StarshipDetail(db.Model):
+    __tablename__ : 'starship_detail'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=False, nullable=False)
+    model = db.Column(db.Integer, unique=False, nullable=False)
+    starship_class = db.Column(db.String(120), unique=False, nullable=False)
+    manufacturer = db.Column(db.String(120), unique=False, nullable=False)
+    
+
+    starship_detail_has_starship = db.relationship("Starship", back_populates = "starship_has_details")
+
+    def __repr__(self):
+        return f'StarshipDetail is id:{self.id}, name: {self.name}, model: {self.model}, starship_class: {self.starship_class}, manufacturer:{self.manufacturer}'
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "model": self.model,
+            "starship_class": self.starship_class,
+            "manufacturer": self.manufacturer,
+        }
+
+@classmethod
+def get_by_id(cls, id):
+    starship = cls.query.get(id)
+    return starship
+                              
     @classmethod
     def get_user_by_id(cls,id):
         user = cls.query.get(id)
@@ -112,22 +182,18 @@ class Species(db.Model):
     def get_by_id(cls, id):
         species = cls.query.get(id)
         return species
-
-class FavouritePeople(db.Model):
-    __tablename__: "favourite_people"
-
-    id = db.Column(db.Integer, primary_key=True)
-    people_id = db.Column(db.Integer, db.ForeignKey("people.id"), nullable=False)
-
-
+                              
 class People(db.Model):
     __tablename__: "people"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), unique=False, nullable=False)
     detail_id = db.Column(db.Integer, db.ForeignKey("people_detail.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     people_has_details = db.relationship("PeopleDetail", back_populates="detail_has_character")
+    have_user = db.relationship("User", secondary=favourite_character, back_populates="have_char")
+
 
     def __repr__(self):
         return f'People is {self.name}, url: {self.url}'
@@ -148,44 +214,8 @@ class People(db.Model):
     def get_by_id(cls, id):
         character = cls.query.get(id)
         return character
-        
-
-
-
-class People(db.Model):
-    __tablename__: "people"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(250), unique=False, nullable=False)
-    detail_id = db.Column(db.Integer, db.ForeignKey("people_detail.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-
-    people_has_details = db.relationship("PeopleDetail", back_populates="detail_has_character")
-    have_user = db.relationship("User", secondary=favourite_character, back_populates="have_char")
-
-
-    def __repr__(self):
-        return f'People is {self.name}, url: {self.url}'
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name
-        }
-
-
-    @classmethod
-    def get_all(cls):
-        character_list = cls.query.all()
-        return character_list
-
-
-    @classmethod
-    def get_by_id(cls, id):
-        character = cls.query.get(id)
-        return character  
-
-
+       
+                        
 class SpeciesDetails(db.Model):
     __tablename__:"species_details"
 
