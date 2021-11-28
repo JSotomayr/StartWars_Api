@@ -15,7 +15,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from sqlalchemy import exc
-from models import db, User, Favourite, FavouritePeople, People, PeopleDetail, Species, SpeciesDetails
+from models import db, User, People, PeopleDetail, Species, SpeciesDetails
 
 #from models import Person
 
@@ -46,15 +46,18 @@ def sitemap():
 
 @app.route('/login', methods=['POST'])
 def login():
-    email, password = request.json.get('email', None), request.json.get('password', None)
+    email = request.json.get('email', None)
+    password = request.json.get('password', None)
+
 
     if email and password:
         user = User.get_by_email(email)
 
         if user:
-            password = User.get_by_password(password)
             access_token = create_access_token(identity=user.to_dict(), expires_delta=timedelta(days=30))
             return jsonify({'token': access_token}), 200
+        
+        return jsonify({"error": "User doesn't exist"})
     
     return jsonify({'error': 'Invalid information'}), 400
 
@@ -63,7 +66,9 @@ def login():
 def get_user():
     users = User.get_all()
 
-    return jsonify(users.to_dict()), 200
+    users_list = [user.to_dict() for user in users]
+
+    return jsonify(users_list), 200
 
 
 @app.route('/user', methods=['POST'])
@@ -87,16 +92,21 @@ def create_user():
     return jsonify({'token': access_token}), 200
 
 
-@app.route('/user/<int:id>/favourite', methods=['GET'])
-@jwt_required
-def get_fav(id):
-    token_id = get_jwt_identity()
+@app.route('/user/<int:id_user>/favourite-people/<int:id_people>', methods=['POST'])
+@jwt_required()
+def create_fav(id_user,id_people):
+    token_id = get_jwt_identity().get("id")
 
-    if token_id == id:
-        favourites = Favourite.get_all()
-        return favourite
+    if not get_jwt_identity().get("id"):
+        user = User.get_by_id(id_user)
+        people = People.get_by_id(id_people)
 
-    return jsonify({'error': 'Not authorized'})
+        if user and people:
+            add_people = new_fav_people(people)
+            fav_people = [people.to_dict() for people in add_people]
+        return jsonify(fav_people), 200
+
+    return jsonify({'error': 'No favourites'}), 404
 
 
 @app.route('/species/', methods=['GET'])
@@ -117,6 +127,8 @@ def get_species(id):
         return jsonify(species.to_dict()), 200
 
     return jsonify({'message':'Species not found'}), 400
+
+
 @app.route('/people', methods=['GET'])
 def get_all_people():
     characters = People.get_all()
