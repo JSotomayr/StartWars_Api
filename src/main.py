@@ -14,6 +14,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from sqlalchemy import exc
+from werkzeug.security import check_password_hash, generate_password_hash
 from models import db, User, People, PeopleDetail, Species, SpeciesDetails, Starship, StarshipDetail, 
 
 #from models import Person
@@ -52,7 +53,7 @@ def login():
     if email and password:
         user = User.get_by_email(email)
 
-        if user:
+        if user and check_password_hash(user._password, password) and user._is_active:
             """ password = User.get_by_password(password) """ #just in case for species we keep it
             access_token = create_access_token(identity=user.to_dict(), expires_delta=timedelta(days=30))
             return jsonify({'token': access_token}), 200
@@ -79,7 +80,7 @@ def create_user():
     if not (new_email and new_username and new_password):
         return jsonify({'error': 'Missing user'}), 400
 
-    user_created = User(email=new_email, username=new_username, _password=new_password) 
+    user_created = User(email=new_email, username=new_username, _password=generate_password_hash(new_password, method='pbkdf2:sha256, salt_length=16))
 
     try:
         user_created.create()
