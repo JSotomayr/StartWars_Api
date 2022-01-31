@@ -15,7 +15,7 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from sqlalchemy import exc
 from werkzeug.security import check_password_hash, generate_password_hash
-from models import db, User, People, PeopleDetail, Species, SpeciesDetails, Starship, StarshipDetail, 
+from models import db, User, People, PeopleDetail, Species, SpeciesDetails, Starship, StarshipDetail
 
 #from models import Person
 
@@ -66,9 +66,11 @@ def login():
 def get_user():
     users = User.get_all()
 
-    users_list = [user.to_dict() for user in users]
-
-    return jsonify(users_list), 200
+    if users:
+        users_list = [users.to_dict() for user in users]
+        return jsonify(users_list), 200
+    
+    return jsonify({'error': 'Users not found'})
 
 
 @app.route('/user', methods=['POST'])
@@ -80,7 +82,7 @@ def create_user():
     if not (new_email and new_username and new_password):
         return jsonify({'error': 'Missing user'}), 400
 
-    user_created = User(email=new_email, username=new_username, _password=generate_password_hash(new_password, method='pbkdf2:sha256, salt_length=16))
+    user_created = User(email=new_email, username=new_username, _password=generate_password_hash(new_password, method='pbkdf2:sha256', salt_length=16))
 
     try:
         user_created.create()
@@ -152,26 +154,6 @@ def add_favstarship(id_user,id_starship):
 
     return jsonify({'error': 'Starship favorite not found'}), 404
 
-
-@app.route('/user', methods=['POST'])
-def create_user():
-    new_email = request.json.get('email', None)
-    new_username = request.json.get('username', None)
-    new_password = request.json.get('password', None)
-
-    if not (new_email and new_username and new_password):
-        return jsonify({'error': 'Missing user'}), 400
-
-    user_created = User(email=new_email, username=new_username, _password=new_password) 
-
-    try:
-        user_created.create()
-    except exc.IntegrityError:
-        return jsonify({'error': 'Fail in creating user'}), 400
-    
-    account = User.get_by_email(new_email)
-    access_token = create_access_token(identity=account.to_dict(), expires_delta=timedelta(days=30))
-    return jsonify({'token': access_token}), 200
 
 @app.route('/user/<int:id_user>/favourite-people/<int:id_people>', methods=['POST'])
 @jwt_required()
@@ -247,28 +229,6 @@ def add_favspecies(id_user,id_species):
             return jsonify(fav_species),200
 
     return jsonify({'error': 'Not authorized'}),404
-
-    
-@app.route('/people', methods=['GET'])
-def get_all_people():
-    characters = People.get_all()
-
-    if characters:
-        character_list = [character.to_dict() for character in characters] 
-        return jsonify({character_list}), 200
-
-
-    return jsonify({'error': 'Characters not found'}), 400
-
-
-@app.route('/people/<int:id>', methods=['GET'])
-def get_character(id):
-    character = People.get_by_id(id)
-
-    if character:
-        return jsonify(character.to_dict()), 200
-
-    return jsonify({'error': 'Character not found'})
 
 
 # this only runs if `$ python src/main.py` is executed
