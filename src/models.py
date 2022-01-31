@@ -5,15 +5,15 @@ db = SQLAlchemy()
 
 starshipfavourites = db.Table('starshipfavourites',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    db.Column('starship_id', db.Integer, db.ForeignKey('starship.id'), primary_key=True)
+    db.Column('starship_id', db.Integer, db.ForeignKey('starship.id'), primary_key=True))
                               
 speciesfavourites = db.Table('speciesfavourites',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    db.Column('species_id', db.Integer, db.ForeignKey('species.id'), primary_key=True)
+    db.Column('species_id', db.Integer, db.ForeignKey('species.id'), primary_key=True))
 
 favourite_character= db.Table('favourite_character',
-    db.Column("user_id", db.Integer, db.ForeignKey("user.id")),
-    db.Column("people_id", db.Integer, db.ForeignKey("people.id"))
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+    db.Column("people_id", db.Integer, db.ForeignKey("people.id"), primary_key=True))
 
 class User(db.Model):
     __tablename__: 'user'
@@ -21,14 +21,11 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     username = db.Column(db.String(120), unique=True, nullable=False)
-    _password = db.Column(db.String(80), unique=False, nullable=False)
+    _password = db.Column(db.String(1000), unique=False, nullable=False)
     _is_active = db.Column(db.Boolean(), unique=False, nullable=False, default=True)
 
-    have_user_species = db.relationship(
-        'Species', 
-        secondary = speciesfavourites, 
-        back_populates="have_user_speciesfav"
-        )
+    have_user_species = db.relationship('Species', secondary = speciesfavourites, back_populates="have_user_speciesfav")
+
     have_char = db.relationship("People", secondary=favourite_character, back_populates="have_user")
                               
     have_user_starship = db.relationship('Starship', secondary=starshipfavourites, back_populates="have_user_starshipfav")
@@ -42,8 +39,8 @@ class User(db.Model):
             "id": self.id,
             "username":self.username,
             "email": self.email,
-            "starships": [starship.to_dict() for starship in self.have_user_starship]
-            "species": [species.to_dict() for species in self.have_user_species]
+            "starships": [starship.to_dict() for starship in self.have_user_starship],
+            "species": [species.to_dict() for species in self.have_user_species],
             "characters": [people.to_dict() for people in self.have_char] 
         }
 
